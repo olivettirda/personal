@@ -5,226 +5,268 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>프라스타 패널 채색 시뮬레이션 v2</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   :root {
     --primary-dark: #0c3026;
     --primary-main: #017f97;
-    --primary-light: #02a5c4;
-    --bg-base: #0a2620;
-    --bg-surface: #0c3026;
-    --bg-elevated: #0e3a2e;
-    --border-color: #1a5c4a;
-    --border-light: #2a7a64;
-    --text-primary: #e8f0ed;
-    --text-secondary: #a0b8b0;
-    --text-muted: #6a8a7e;
-    --accent: #017f97;
-    --accent-light: #02a5c4;
-    --spacing-xs: 4px;
-    --spacing-sm: 8px;
-    --spacing-md: 16px;
-    --spacing-lg: 24px;
-    --spacing-xl: 32px;
-    --spacing-2xl: 40px;
+    --primary-light: #e8f4f8;
+    --accent: #00a1b8;
+    --bg-page: #f5f7fa;
+    --bg-card: #ffffff;
+    --text-primary: #212529;
+    --text-secondary: #6c757d;
+    --text-muted: #8a9a94;
+    --border-default: #dee2e6;
+    --border-focus: #017f97;
+    --success: #28a745;
+    --warning: #ffc107;
+    --error: #dc3545;
+    --gradient-primary: linear-gradient(135deg, #0c3026 0%, #017f97 100%);
   }
 
   body {
-    font-family: 'KoPub Dotum', 'KoPubDotumMedium', 'Noto Sans KR', sans-serif;
-    background: var(--bg-base);
+    font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg-page);
     color: var(--text-primary);
     min-height: 100vh;
-    padding: var(--spacing-lg);
-    padding: max(var(--spacing-lg), env(safe-area-inset-top)) max(var(--spacing-lg), env(safe-area-inset-right)) max(var(--spacing-lg), env(safe-area-inset-bottom)) max(var(--spacing-lg), env(safe-area-inset-left));
+    line-height: 1.6;
   }
-  h1 { font-size: 18px; font-weight: 500; color: var(--accent-light); margin-bottom: var(--spacing-xs); }
-  .subtitle { font-size: 12px; color: var(--text-muted); margin-bottom: var(--spacing-lg); }
+
+  /* Header */
+  .header {
+    background: var(--gradient-primary);
+    color: white;
+    padding: 20px 40px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 12px rgba(12, 48, 38, 0.2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .header-left h1 { font-size: 1.4rem; font-weight: 600; margin: 0; color: white; }
+  .header-left p { font-size: 0.85rem; opacity: 0.9; margin: 0; }
+
+  /* Container */
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
 
   /* Tabs */
-  .tabs { display: flex; gap: var(--spacing-xs); margin-bottom: var(--spacing-md); overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .tab {
-    padding: 12px 24px; font-size: 13px; font-family: 'KoPub Dotum', 'KoPubDotumMedium', 'Noto Sans KR', sans-serif;
-    border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-secondary);
-    border-radius: 6px 6px 0 0; cursor: pointer; transition: all 0.2s; white-space: nowrap;
-    min-height: 44px;
+  .tabs {
+    display: flex; background: white; border-radius: 8px; padding: 4px; gap: 4px;
+    margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow-x: auto;
   }
-  .tab.active { background: var(--bg-base); color: var(--accent-light); border-bottom-color: var(--bg-base); }
+  .tab {
+    flex: 1; min-width: max-content; padding: 12px 20px; border: none; background: none;
+    border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-family: inherit;
+    color: var(--text-secondary); transition: all 0.2s; white-space: nowrap; min-height: 44px;
+  }
+  .tab:hover { background: var(--bg-page); }
+  .tab.active { background: var(--primary-main); color: white; font-weight: 500; }
   .tab-content { display: none; }
-  .tab-content.active { display: block; }
+  .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Card */
+  .card {
+    background: var(--bg-card); border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid var(--border-default);
+    margin-bottom: 24px; overflow: hidden;
+  }
+  .card-header {
+    background: #f8faf9; padding: 14px 20px; border-bottom: 1px solid var(--border-default);
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+  }
+  .card-header h3 { font-size: 1rem; font-weight: 600; color: var(--primary-dark); margin: 0; }
+  .card-body { padding: 20px; }
 
   /* Upload zone */
   .upload-zone {
-    border: 2px dashed var(--border-color); border-radius: 12px; padding: var(--spacing-2xl);
-    text-align: center; cursor: pointer; transition: border-color 0.2s; margin-bottom: var(--spacing-md); position: relative;
+    border: 2px dashed var(--primary-light); border-radius: 10px; padding: 40px;
+    text-align: center; cursor: pointer; background: #f8faf9;
+    transition: all 0.2s; margin-bottom: 16px; position: relative;
+    min-height: 160px; display: flex; flex-direction: column; justify-content: center; align-items: center;
   }
-  .upload-zone:hover { border-color: var(--accent); }
+  .upload-zone:hover { border-color: var(--primary-main); background: var(--primary-light); }
   .upload-zone.has-image { padding: 0; border-style: solid; }
-  .upload-hint { font-size: 13px; color: var(--text-muted); }
-  .upload-hint em { color: var(--accent-light); font-style: normal; }
+  .upload-zone .icon { font-size: 36px; margin-bottom: 8px; }
+  .upload-hint { font-size: 13px; color: var(--text-secondary); }
+  .upload-hint em { color: var(--primary-main); font-style: normal; font-weight: 500; }
   #fileInput { display: none; }
 
   /* Image grid */
-  .image-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md); margin-bottom: var(--spacing-md); }
-  .image-panel { background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; }
+  .image-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .image-panel { background: var(--bg-card); border: 1px solid var(--border-default); border-radius: 8px; overflow: hidden; }
   .image-panel-header {
-    padding: var(--spacing-sm) 12px; font-size: 12px; font-weight: 500; border-bottom: 1px solid var(--border-color);
+    padding: 10px 16px; font-size: 0.85rem; font-weight: 600; color: var(--primary-dark);
+    border-bottom: 1px solid var(--border-default); background: #f8faf9;
     display: flex; justify-content: space-between; align-items: center;
   }
   .image-panel canvas { display: block; width: 100%; height: auto; }
 
   /* Controls */
-  .controls-bar { display: flex; gap: var(--spacing-md); align-items: center; margin-bottom: var(--spacing-md); flex-wrap: wrap; }
-  .control-group { display: flex; align-items: center; gap: var(--spacing-sm); font-size: 12px; color: var(--text-secondary); min-height: 44px; }
+  .controls-bar {
+    display: flex; gap: 16px; align-items: center; margin-bottom: 16px; flex-wrap: wrap;
+    background: var(--bg-card); border: 1px solid var(--border-default); border-radius: 8px; padding: 12px 16px;
+  }
+  .control-group { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text-secondary); min-height: 44px; }
   .control-group select, .control-group input[type="range"] {
-    font-family: 'KoPub Dotum', 'KoPubDotumMedium', 'Noto Sans KR', sans-serif; font-size: 11px;
-    background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; padding: var(--spacing-xs) var(--spacing-sm);
+    font-family: inherit; font-size: 0.85rem;
+    background: var(--bg-page); color: var(--text-primary); border: 1px solid var(--border-default); border-radius: 6px; padding: 6px 10px;
   }
   .control-group input[type="range"] {
-    width: 100px; height: 4px; -webkit-appearance: none; appearance: none;
-    background: var(--border-color); border: none; border-radius: 2px;
+    width: 120px; height: 4px; -webkit-appearance: none; appearance: none;
+    background: var(--border-default); border: none; border-radius: 2px;
   }
   .control-group input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--accent-light); cursor: pointer;
+    -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--primary-main); cursor: pointer;
   }
 
   /* Stats */
-  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--spacing-sm); margin-bottom: var(--spacing-md); }
-  .stat-card { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; padding: var(--spacing-md); text-align: center; }
-  .stat-value { font-size: 22px; font-weight: 700; margin-bottom: var(--spacing-xs); }
-  .stat-label { font-size: 10px; color: var(--text-muted); }
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+  .stat-card {
+    background: var(--bg-card); border: 1px solid var(--border-default); border-radius: 8px;
+    padding: 16px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .stat-value { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
+  .stat-label { font-size: 0.75rem; color: var(--text-secondary); }
 
   /* Problem list */
-  .problem-list { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 10px; padding: var(--spacing-md); margin-bottom: var(--spacing-md); }
-  .problem-title { font-size: 13px; font-weight: 500; color: var(--accent-light); margin-bottom: var(--spacing-sm); }
+  .problem-list {
+    background: var(--bg-card); border: 1px solid var(--border-default); border-radius: 8px;
+    padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .problem-title { font-size: 0.9rem; font-weight: 600; color: var(--primary-dark); margin-bottom: 12px; }
   .problem-item {
-    display: flex; align-items: center; gap: var(--spacing-sm); padding: var(--spacing-sm) 0;
-    border-bottom: 1px solid var(--bg-base); font-size: 12px; flex-wrap: wrap;
+    display: flex; align-items: center; gap: 10px; padding: 10px 0;
+    border-bottom: 1px solid var(--border-default); font-size: 0.85rem; flex-wrap: wrap;
     min-height: 44px;
   }
   .problem-item:last-child { border-bottom: none; }
-  .problem-swatch { width: 32px; height: 24px; border-radius: 4px; border: 1px solid var(--border-light); flex-shrink: 0; }
+  .problem-swatch { width: 32px; height: 24px; border-radius: 4px; border: 1px solid var(--border-default); flex-shrink: 0; }
   .problem-arrow { color: var(--text-muted); flex-shrink: 0; }
-  .problem-delta { font-family: 'Courier New', monospace; font-size: 11px; flex-shrink: 0; min-width: 60px; text-align: right; }
-  .delta-high { color: #ff6b6b; }
-  .delta-mid { color: #ffa94d; }
-  .delta-low { color: #69db7c; }
-  .problem-pct { font-size: 10px; color: var(--text-muted); flex-shrink: 0; min-width: 40px; text-align: right; }
+  .problem-delta { font-family: 'Courier New', monospace; font-size: 0.8rem; flex-shrink: 0; min-width: 70px; text-align: right; }
+  .delta-high { color: var(--error); }
+  .delta-mid { color: #e67700; }
+  .delta-low { color: var(--success); }
+  .problem-pct { font-size: 0.75rem; color: var(--text-muted); flex-shrink: 0; min-width: 40px; text-align: right; }
   .problem-suggest {
-    display: flex; align-items: center; gap: var(--spacing-sm); margin-left: auto;
-    background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: 4px; padding: var(--spacing-xs) var(--spacing-sm);
-    font-size: 10px; color: #69db7c; cursor: pointer; transition: background 0.2s;
+    display: flex; align-items: center; gap: 8px; margin-left: auto;
+    background: #d4edda; border: 1px solid #c3e6cb; border-radius: 6px; padding: 6px 10px;
+    font-size: 0.75rem; color: #155724; cursor: pointer; transition: background 0.2s;
     min-height: 44px;
   }
-  .problem-suggest:hover { background: var(--border-color); }
-  .problem-suggest-swatch { width: 20px; height: 16px; border-radius: 3px; border: 1px solid var(--border-light); flex-shrink: 0; }
+  .problem-suggest:hover { background: #c3e6cb; }
+  .problem-suggest-swatch { width: 20px; height: 16px; border-radius: 3px; border: 1px solid #a8d5b5; flex-shrink: 0; }
 
   /* Legend */
-  .heatmap-legend { display: flex; align-items: center; gap: var(--spacing-xs); font-size: 10px; color: var(--text-muted); margin-bottom: var(--spacing-md); }
-  .legend-bar { width: 120px; height: 10px; border-radius: 3px; background: linear-gradient(to right, rgba(0,255,0,0.5), rgba(255,255,0,0.5), rgba(255,0,0,0.7)); }
+  .heatmap-legend { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 16px; }
+  .legend-bar { width: 120px; height: 10px; border-radius: 3px; background: linear-gradient(to right, rgba(0,200,0,0.6), rgba(255,200,0,0.6), rgba(255,50,50,0.7)); }
 
   /* ===== TAB 2: Layer Editor ===== */
-  .layer-container { display: grid; grid-template-columns: 340px 1fr; gap: var(--spacing-lg); }
-  .layers-panel { display: flex; flex-direction: column; gap: var(--spacing-sm); }
+  .layer-container { display: grid; grid-template-columns: 340px 1fr; gap: 24px; }
+  .layers-panel { display: flex; flex-direction: column; gap: 8px; }
   .layer-card {
-    background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px;
-    padding: var(--spacing-md); cursor: pointer; transition: border-color 0.2s;
-    min-height: 44px;
+    background: var(--bg-card); border: 2px solid var(--border-default); border-radius: 8px;
+    padding: 14px; cursor: pointer; transition: all 0.2s; min-height: 44px;
   }
-  .layer-card.active { border-color: var(--accent); }
-  .layer-card:hover { border-color: var(--border-light); }
-  .layer-header { display: flex; align-items: center; gap: var(--spacing-sm); margin-bottom: var(--spacing-sm); }
-  .layer-swatch { width: 28px; height: 28px; border-radius: 6px; border: 2px solid rgba(255,255,255,0.15); flex-shrink: 0; }
-  .layer-name { font-size: 13px; font-weight: 500; }
-  .layer-name-sub { font-size: 10px; color: var(--text-muted); }
-  .layer-color-info { font-size: 10px; color: var(--text-secondary); font-family: 'Courier New', monospace; }
-  .layer-suggest-btn {
-    font-size: 9px; color: #69db7c; background: var(--bg-elevated); border: 1px solid var(--border-color);
-    border-radius: 3px; padding: var(--spacing-xs) var(--spacing-sm); cursor: pointer; margin-left: var(--spacing-sm);
-  }
+  .layer-card.active { border-color: var(--primary-main); background: var(--primary-light); }
+  .layer-card:hover { border-color: var(--primary-main); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .layer-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .layer-swatch { width: 28px; height: 28px; border-radius: 6px; border: 2px solid var(--border-default); flex-shrink: 0; }
+  .layer-name { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); }
+  .layer-name-sub { font-size: 0.75rem; color: var(--text-muted); }
+  .layer-color-info { font-size: 0.75rem; color: var(--text-secondary); font-family: 'Courier New', monospace; }
 
-  .preview-panel { display: flex; flex-direction: column; gap: var(--spacing-md); }
+  .preview-panel { display: flex; flex-direction: column; gap: 16px; }
   .preview-box {
-    background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: 12px; padding: var(--spacing-md); display: flex; gap: var(--spacing-md);
+    background: var(--bg-card); border: 1px solid var(--border-default); border-radius: 12px;
+    padding: 20px; display: flex; gap: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   }
   .preview-canvas-layers {
     width: 180px; height: 270px; border-radius: 8px; overflow: hidden; flex-shrink: 0;
-    display: grid; grid-template-rows: repeat(6, 1fr); border: 1px solid var(--border-light);
+    display: grid; grid-template-rows: repeat(6, 1fr); border: 1px solid var(--border-default);
   }
   .preview-strip { width: 100%; transition: background-color 0.3s; }
-  .compare-label { font-size: 11px; color: var(--text-muted); margin-bottom: var(--spacing-sm); text-transform: uppercase; letter-spacing: 1px; }
-  .compare-row { display: flex; gap: var(--spacing-md); margin-bottom: var(--spacing-sm); }
+  .compare-label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+  .compare-row { display: flex; gap: 16px; margin-bottom: 10px; }
   .compare-block { flex: 1; text-align: center; }
-  .compare-swatch { width: 100%; height: 50px; border-radius: 6px; border: 1px solid var(--border-light); margin-bottom: var(--spacing-xs); }
-  .compare-text { font-size: 10px; color: var(--text-secondary); font-family: 'Courier New', monospace; }
-  .warning-badge { display: inline-block; background: #dc3545; color: #fff; font-size: 9px; padding: var(--spacing-xs) var(--spacing-sm); border-radius: 3px; }
-  .safe-badge { display: inline-block; background: #28a745; color: #fff; font-size: 9px; padding: var(--spacing-xs) var(--spacing-sm); border-radius: 3px; }
+  .compare-swatch { width: 100%; height: 50px; border-radius: 6px; border: 1px solid var(--border-default); margin-bottom: 4px; }
+  .compare-text { font-size: 0.75rem; color: var(--text-secondary); font-family: 'Courier New', monospace; }
+  .warning-badge { display: inline-block; background: var(--error); color: #fff; font-size: 0.75rem; padding: 4px 10px; border-radius: 12px; font-weight: 500; }
+  .safe-badge { display: inline-block; background: var(--success); color: #fff; font-size: 0.75rem; padding: 4px 10px; border-radius: 12px; font-weight: 500; }
 
-  .editor-box { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 10px; padding: var(--spacing-md); }
-  .editor-title { font-size: 13px; font-weight: 500; color: var(--accent-light); margin-bottom: var(--spacing-sm); }
-  .slider-group { margin-bottom: var(--spacing-sm); }
-  .slider-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-secondary); margin-bottom: var(--spacing-xs); }
+  .editor-box {
+    background: var(--bg-card); border: 1px solid var(--border-default); border-radius: 10px;
+    padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .editor-title { font-size: 0.9rem; font-weight: 600; color: var(--primary-dark); margin-bottom: 12px; }
+  .slider-group { margin-bottom: 10px; }
+  .slider-label { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 4px; }
   .slider-group input[type="range"] {
     width: 100%; height: 5px; -webkit-appearance: none; appearance: none;
-    background: var(--border-color); border-radius: 3px; outline: none;
+    background: var(--border-default); border-radius: 3px; outline: none;
   }
   .slider-group input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--accent-light); cursor: pointer;
+    -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--primary-main); cursor: pointer;
   }
-  .color-pick-row { display: flex; align-items: center; gap: var(--spacing-sm); margin-bottom: var(--spacing-sm); }
-  input[type="color"] { width: 44px; height: 44px; border: 1px solid var(--border-light); border-radius: 4px; cursor: pointer; background: none; padding: 0; }
+  .color-pick-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  input[type="color"] { width: 44px; height: 44px; border: 1px solid var(--border-default); border-radius: 6px; cursor: pointer; background: none; padding: 0; }
   .hex-input {
-    width: 80px; background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: 4px;
-    color: var(--text-primary); font-size: 11px; font-family: 'Courier New', monospace; padding: var(--spacing-sm); text-align: center;
+    width: 90px; background: var(--bg-page); border: 1px solid var(--border-default); border-radius: 6px;
+    color: var(--text-primary); font-size: 0.85rem; font-family: 'Courier New', monospace; padding: 10px; text-align: center;
     min-height: 44px;
   }
-  .cmyk-display { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--spacing-sm); margin-top: var(--spacing-sm); }
-  .cmyk-item { text-align: center; background: var(--bg-elevated); border-radius: 6px; padding: var(--spacing-sm) var(--spacing-xs); }
-  .cmyk-letter { font-size: 13px; font-weight: 700; margin-bottom: var(--spacing-xs); }
-  .cmyk-value { font-size: 11px; font-family: 'Courier New', monospace; color: var(--text-secondary); }
-  .section-divider { height: 1px; background: var(--border-color); margin: var(--spacing-sm) 0; }
+  .hex-input:focus { outline: none; border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(1,127,151,0.15); }
+  .cmyk-display { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+  .cmyk-item { text-align: center; background: var(--bg-page); border-radius: 8px; padding: 10px 6px; border: 1px solid var(--border-default); }
+  .cmyk-letter { font-size: 0.9rem; font-weight: 700; margin-bottom: 2px; }
+  .cmyk-value { font-size: 0.8rem; font-family: 'Courier New', monospace; color: var(--text-secondary); }
+  .section-divider { height: 1px; background: var(--border-default); margin: 12px 0; }
 
   .suggest-box {
-    background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: 8px; padding: var(--spacing-sm); margin-top: var(--spacing-sm);
+    background: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px; padding: 12px; margin-top: 12px;
   }
-  .suggest-title { font-size: 11px; color: #69db7c; margin-bottom: var(--spacing-sm); font-weight: 500; }
-  .suggest-colors { display: flex; gap: var(--spacing-sm); flex-wrap: wrap; }
+  .suggest-title { font-size: 0.8rem; color: #155724; margin-bottom: 8px; font-weight: 600; }
+  .suggest-colors { display: flex; gap: 8px; flex-wrap: wrap; }
   .suggest-chip {
-    display: flex; align-items: center; gap: var(--spacing-sm); background: var(--bg-surface); border: 1px solid var(--border-color);
-    border-radius: 6px; padding: var(--spacing-sm); cursor: pointer; transition: border-color 0.2s;
-    min-height: 44px;
+    display: flex; align-items: center; gap: 8px; background: var(--bg-card); border: 1px solid var(--border-default);
+    border-radius: 6px; padding: 8px 12px; cursor: pointer; transition: all 0.2s; min-height: 44px;
   }
-  .suggest-chip:hover { border-color: #69db7c; }
-  .suggest-chip-swatch { width: 20px; height: 16px; border-radius: 3px; border: 1px solid var(--border-light); }
-  .suggest-chip-text { font-size: 10px; font-family: 'Courier New', monospace; color: var(--text-secondary); }
+  .suggest-chip:hover { border-color: var(--success); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .suggest-chip-swatch { width: 20px; height: 16px; border-radius: 3px; border: 1px solid var(--border-default); }
+  .suggest-chip-text { font-size: 0.75rem; font-family: 'Courier New', monospace; color: var(--text-secondary); }
 
-  .no-image-msg { color: var(--text-muted); font-size: 13px; text-align: center; padding: var(--spacing-2xl) var(--spacing-lg); }
-
+  /* Buttons */
   .btn-export {
-    padding: var(--spacing-sm) var(--spacing-md); font-size: 11px; font-family: 'KoPub Dotum', 'KoPubDotumMedium', 'Noto Sans KR', sans-serif;
-    background: var(--primary-main); color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;
-    min-height: 44px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 20px; font-size: 0.875rem; font-family: inherit;
+    background: var(--primary-dark); color: white; border: none; border-radius: 6px;
+    cursor: pointer; font-weight: 500; transition: all 0.2s; min-height: 44px;
   }
-  .btn-export:hover { background: var(--primary-light); }
+  .btn-export:hover { background: #0a2820; transform: translateY(-1px); }
   .btn-secondary {
-    padding: var(--spacing-sm) var(--spacing-md); font-size: 11px; font-family: 'KoPub Dotum', 'KoPubDotumMedium', 'Noto Sans KR', sans-serif;
-    background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;
-    min-height: 44px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 20px; font-size: 0.875rem; font-family: inherit;
+    background: white; color: var(--primary-main); border: 1px solid var(--primary-main);
+    border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.2s; min-height: 44px;
   }
-  .btn-secondary:hover { background: var(--bg-elevated); }
+  .btn-secondary:hover { background: var(--primary-light); }
 
   /* Procreate palette section */
-  .palette-section { margin-top: var(--spacing-md); }
-  .palette-section-title { font-size: 12px; color: var(--accent-light); margin-bottom: var(--spacing-sm); font-weight: 500; }
-  .palette-grid { display: flex; gap: var(--spacing-sm); flex-wrap: wrap; margin-bottom: var(--spacing-sm); }
+  .palette-section { padding: 4px; }
+  .palette-section-title { font-size: 0.9rem; color: var(--primary-dark); margin-bottom: 8px; font-weight: 600; }
+  .palette-grid { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
   .palette-color {
-    width: 44px; height: 44px; border-radius: 4px; border: 2px solid transparent;
-    cursor: pointer; transition: border-color 0.2s;
+    width: 44px; height: 44px; border-radius: 6px; border: 2px solid var(--border-default);
+    cursor: pointer; transition: all 0.2s;
   }
-  .palette-color:hover { border-color: var(--accent); }
-  .palette-buttons { display: flex; gap: var(--spacing-sm); flex-wrap: wrap; }
+  .palette-color:hover { border-color: var(--primary-main); transform: scale(1.1); }
+  .palette-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
 
-  /* iPad responsive */
+  /* Responsive */
   @media (max-width: 1024px) {
     .layer-container { grid-template-columns: 1fr; }
     .image-grid { grid-template-columns: 1fr; }
@@ -232,26 +274,35 @@
     .preview-box { flex-direction: column; align-items: center; }
     .preview-canvas-layers { width: 100%; height: 120px; grid-template-rows: 1fr; grid-template-columns: repeat(6, 1fr); }
   }
-  @media (max-width: 600px) {
-    body { padding: var(--spacing-md); }
-    h1 { font-size: 16px; }
+  @media (max-width: 768px) {
+    .header { padding: 16px 20px; }
+    .header-left h1 { font-size: 1.1rem; }
+    .container { padding: 16px; }
     .stats-row { grid-template-columns: 1fr 1fr; }
     .control-group input[type="range"] { width: 80px; }
   }
 
-  /* Toast notification */
+  /* Toast */
   .toast {
-    position: fixed; bottom: var(--spacing-xl); left: 50%; transform: translateX(-50%);
-    background: var(--primary-main); color: #fff; padding: var(--spacing-sm) var(--spacing-lg); border-radius: 8px;
-    font-size: 12px; z-index: 1000; opacity: 0; transition: opacity 0.3s;
-    pointer-events: none;
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--bg-card); color: var(--text-primary); padding: 12px 24px; border-radius: 8px;
+    font-size: 0.85rem; z-index: 1000; opacity: 0; transition: opacity 0.3s;
+    pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border-left: 4px solid var(--success);
   }
   .toast.show { opacity: 1; }
 </style>
 </head>
 <body>
-<h1>프라스타 패널 채색 시뮬레이션 v2</h1>
-<p class="subtitle">CIEDE2000 기반 이미지 분석 + 레이어별 색상 시뮬레이터 + Procreate 팔레트 연동</p>
+
+<div class="header">
+  <div class="header-left">
+    <h1>프라스타 패널 채색 시뮬레이션</h1>
+    <p>CIEDE2000 기반 이미지 분석 + 레이어별 색상 시뮬레이터 + Procreate 팔레트 연동</p>
+  </div>
+</div>
+
+<div class="container">
 
 <div class="tabs">
   <div class="tab active" onclick="switchTab(0)">이미지 분석</div>
@@ -261,8 +312,14 @@
 
 <!-- TAB 0: Image Analysis -->
 <div class="tab-content active" id="tab0">
-  <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
-    <div class="upload-hint">이미지를 <em>클릭</em>하거나 <em>드래그</em>하여 업로드<br>PNG / JPG 이미지 (Procreate 내보내기)</div>
+  <div class="card">
+    <div class="card-header"><h3>이미지 업로드</h3></div>
+    <div class="card-body">
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+        <div class="icon">🎨</div>
+        <div class="upload-hint">이미지를 <em>클릭</em>하거나 <em>드래그</em>하여 업로드<br>PNG / JPG 이미지 (Procreate 내보내기)</div>
+      </div>
+    </div>
   </div>
   <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp" onchange="handleFile(this.files[0])">
 
@@ -297,7 +354,7 @@
       <div class="image-panel">
         <div class="image-panel-header">
           <span>색차 히트맵 (ΔE00)</span>
-          <span style="font-size:10px;color:var(--text-muted)">안전 → 위험</span>
+          <span style="font-size:0.75rem;color:var(--text-muted)">안전 → 위험</span>
         </div>
         <canvas id="canvasHeatmap"></canvas>
       </div>
@@ -329,34 +386,40 @@
 
 <!-- TAB 2: Palette -->
 <div class="tab-content" id="tab2">
-  <div class="palette-section">
-    <div class="palette-section-title">Procreate 팔레트 관리</div>
-    <p style="font-size:11px;color:var(--text-muted);margin-bottom:var(--spacing-md);">
-      Procreate .swatches 파일을 가져오거나, 현재 레이어 색상을 .swatches로 내보낼 수 있습니다.
-    </p>
-    <div class="palette-buttons">
-      <button class="btn-secondary" onclick="document.getElementById('paletteInput').click()">
-        .swatches 가져오기
-      </button>
-      <button class="btn-export" onclick="exportSwatches()">
-        .swatches 내보내기
-      </button>
-    </div>
-    <input type="file" id="paletteInput" accept=".swatches" style="display:none" onchange="importSwatches(this.files[0])">
+  <div class="card">
+    <div class="card-header"><h3>Procreate 팔레트 관리</h3></div>
+    <div class="card-body">
+      <div class="palette-section">
+        <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:16px;">
+          Procreate .swatches 파일을 가져오거나, 현재 레이어 색상을 .swatches로 내보낼 수 있습니다.
+        </p>
+        <div class="palette-buttons">
+          <button class="btn-secondary" onclick="document.getElementById('paletteInput').click()">
+            .swatches 가져오기
+          </button>
+          <button class="btn-export" onclick="exportSwatches()">
+            .swatches 내보내기
+          </button>
+        </div>
+        <input type="file" id="paletteInput" accept=".swatches" style="display:none" onchange="importSwatches(this.files[0])">
 
-    <div id="importedPalette" style="margin-top:var(--spacing-md);display:none">
-      <div class="palette-section-title">가져온 팔레트</div>
-      <div class="palette-grid" id="paletteGrid"></div>
-      <p style="font-size:10px;color:var(--text-muted);">색상을 클릭하면 현재 선택된 레이어에 적용됩니다.</p>
-    </div>
+        <div id="importedPalette" style="margin-top:20px;display:none">
+          <div class="palette-section-title">가져온 팔레트</div>
+          <div class="palette-grid" id="paletteGrid"></div>
+          <p style="font-size:0.75rem;color:var(--text-muted);">색상을 클릭하면 현재 선택된 레이어에 적용됩니다.</p>
+        </div>
 
-    <div style="margin-top:var(--spacing-lg);">
-      <div class="palette-section-title">현재 레이어 색상</div>
-      <div class="palette-grid" id="currentPaletteGrid"></div>
-      <div id="paletteSafetyCheck" style="margin-top:var(--spacing-sm);"></div>
+        <div style="margin-top:24px;">
+          <div class="palette-section-title">현재 레이어 색상</div>
+          <div class="palette-grid" id="currentPaletteGrid"></div>
+          <div id="paletteSafetyCheck" style="margin-top:8px;"></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
+
+</div><!-- /.container -->
 
 <div class="toast" id="toast"></div>
 
@@ -580,10 +643,10 @@ let deltaPixels = null;
 
 const zone = document.getElementById('uploadZone');
 zone.addEventListener('dragover', e => { e.preventDefault(); zone.style.borderColor = '#017f97'; });
-zone.addEventListener('dragleave', () => { zone.style.borderColor = '#1a5c4a'; });
+zone.addEventListener('dragleave', () => { zone.style.borderColor = ''; });
 zone.addEventListener('drop', e => {
   e.preventDefault();
-  zone.style.borderColor = '#1a5c4a';
+  zone.style.borderColor = '';
   if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
 });
 
@@ -667,15 +730,15 @@ function processImage(img) {
 
   document.getElementById('statsRow').innerHTML = `
     <div class="stat-card">
-      <div class="stat-value" style="color:#69db7c">${(safeCount / totalPx * 100).toFixed(1)}%</div>
+      <div class="stat-value" style="color:#28a745">${(safeCount / totalPx * 100).toFixed(1)}%</div>
       <div class="stat-label">안전 (ΔE00≤3)</div>
     </div>
     <div class="stat-card">
-      <div class="stat-value" style="color:#ffa94d">${(warnCount / totalPx * 100).toFixed(1)}%</div>
+      <div class="stat-value" style="color:#e67700">${(warnCount / totalPx * 100).toFixed(1)}%</div>
       <div class="stat-label">주의 (3<ΔE00≤6)</div>
     </div>
     <div class="stat-card">
-      <div class="stat-value" style="color:#ff6b6b">${(dangerCount / totalPx * 100).toFixed(1)}%</div>
+      <div class="stat-value" style="color:#dc3545">${(dangerCount / totalPx * 100).toFixed(1)}%</div>
       <div class="stat-label">위험 (ΔE00>6)</div>
     </div>
     <div class="stat-card">
@@ -708,7 +771,7 @@ function processImage(img) {
             <div class="problem-suggest-swatch" style="background:${rgbToHex(suggestion.r, suggestion.g, suggestion.b)}"></div>
             추천: ${rgbToHex(suggestion.r, suggestion.g, suggestion.b)}
           </div>` :
-          `<div style="font-size:10px;color:#69db7c;margin-left:auto;">CMYK 안전</div>`;
+          `<div style="font-size:0.75rem;color:#155724;margin-left:auto;">CMYK 안전</div>`;
 
         return `<div class="problem-item">
           <div class="problem-swatch" style="background:${hexOrig}" title="원본"></div>
@@ -724,7 +787,7 @@ function processImage(img) {
 
   updateHeatmap();
   document.getElementById('analysisResult').style.display = 'block';
-  document.getElementById('uploadZone').style.display = 'none';
+  document.getElementById('uploadZone').closest('.card').style.display = 'none';
 }
 
 function copyColor(hex) {
@@ -897,8 +960,8 @@ function renderLayers() {
     <div class="cmyk-display">
       <div class="cmyk-item"><div class="cmyk-letter" style="color:#00bcd4">C</div><div class="cmyk-value">${cmyk.c}%</div></div>
       <div class="cmyk-item"><div class="cmyk-letter" style="color:#e91e63">M</div><div class="cmyk-value">${cmyk.m}%</div></div>
-      <div class="cmyk-item"><div class="cmyk-letter" style="color:#f0e68c">Y</div><div class="cmyk-value">${cmyk.y}%</div></div>
-      <div class="cmyk-item"><div class="cmyk-letter" style="color:#888">K</div><div class="cmyk-value">${cmyk.k}%</div></div>
+      <div class="cmyk-item"><div class="cmyk-letter" style="color:#d4a017">Y</div><div class="cmyk-value">${cmyk.y}%</div></div>
+      <div class="cmyk-item"><div class="cmyk-letter" style="color:#333">K</div><div class="cmyk-value">${cmyk.k}%</div></div>
     </div>
   `;
 }
@@ -931,7 +994,7 @@ function renderPaletteTab() {
     const lab1 = rgbToLab(rgb.r, rgb.g, rgb.b);
     const lab2 = rgbToLab(back.r, back.g, back.b);
     const de = deltaE00(lab1, lab2);
-    const borderColor = de > 6 ? '#ff6b6b' : de > 3 ? '#ffa94d' : '#1a5c4a';
+    const borderColor = de > 6 ? '#dc3545' : de > 3 ? '#e67700' : 'var(--border-default)';
     return `<div class="palette-color" style="background:${l.color};border-color:${borderColor}"
       title="${l.name}: ${l.color} (ΔE00 ${de.toFixed(1)})" onclick="switchTab(1);selLayer(${i})"></div>`;
   }).join('');
@@ -948,7 +1011,7 @@ function renderPaletteTab() {
   const unsafe = checks.filter(c => c.de > 3);
   document.getElementById('paletteSafetyCheck').innerHTML = unsafe.length === 0
     ? `<div class="safe-badge">모든 레이어가 CMYK 안전합니다</div>`
-    : `<div style="font-size:11px;color:#ffa94d;">${unsafe.map(u => `${u.name} (ΔE00 ${u.de.toFixed(1)})`).join(', ')} — 색차 주의</div>`;
+    : `<div style="font-size:0.85rem;color:#e67700;">${unsafe.map(u => `${u.name} (ΔE00 ${u.de.toFixed(1)})`).join(', ')} — 색차 주의</div>`;
 }
 
 // Procreate .swatches import (ASE-like binary, but Procreate uses its own format)
@@ -1020,7 +1083,7 @@ function renderImportedPalette() {
     const lab1 = rgbToLab(c.r, c.g, c.b);
     const lab2 = rgbToLab(back.r, back.g, back.b);
     const de = deltaE00(lab1, lab2);
-    const borderColor = de > 6 ? '#ff6b6b' : de > 3 ? '#ffa94d' : 'transparent';
+    const borderColor = de > 6 ? '#dc3545' : de > 3 ? '#e67700' : 'transparent';
     return `<div class="palette-color" style="background:${hex};border-color:${borderColor}"
       title="${hex} (ΔE00 ${de.toFixed(1)})"
       onclick="applyImportedColor(${i})"></div>`;

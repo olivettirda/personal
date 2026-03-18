@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>프라스타 패널 채색 시뮬레이션 v2</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    min-height: 100vh;
+    padding: 20px;
+    padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+  }
+  h1 { font-size: 18px; font-weight: 500; color: #f0e68c; margin-bottom: 4px; }
+  .subtitle { font-size: 12px; color: #888; margin-bottom: 20px; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tab {
+    padding: 8px 20px; font-size: 13px; font-family: 'Noto Sans KR', sans-serif;
+    border: 1px solid #2a2a4a; background: #16213e; color: #aaa;
+    border-radius: 6px 6px 0 0; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  }
+  .tab.active { background: #0f0f23; color: #f0e68c; border-bottom-color: #0f0f23; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Upload zone */
+  .upload-zone {
+    border: 2px dashed #2a2a4a; border-radius: 12px; padding: 40px;
+    text-align: center; cursor: pointer; transition: border-color 0.2s; margin-bottom: 16px; position: relative;
+  }
+  .upload-zone:hover { border-color: #f0e68c; }
+  .upload-zone.has-image { padding: 0; border-style: solid; }
+  .upload-hint { font-size: 13px; color: #666; }
+  .upload-hint em { color: #f0e68c; font-style: normal; }
+  #fileInput { display: none; }
+
+  /* Image grid */
+  .image-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .image-panel { background: #0f0f23; border: 1px solid #2a2a4a; border-radius: 10px; overflow: hidden; }
+  .image-panel-header {
+    padding: 8px 12px; font-size: 12px; font-weight: 500; border-bottom: 1px solid #2a2a4a;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .image-panel canvas { display: block; width: 100%; height: auto; }
+
+  /* Controls */
+  .controls-bar { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+  .control-group { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #aaa; }
+  .control-group select, .control-group input[type="range"] {
+    font-family: 'Noto Sans KR', sans-serif; font-size: 11px;
+    background: #16213e; color: #e0e0e0; border: 1px solid #2a2a4a; border-radius: 4px; padding: 4px 6px;
+  }
+  .control-group input[type="range"] {
+    width: 100px; height: 4px; -webkit-appearance: none; appearance: none;
+    background: #2a2a4a; border: none; border-radius: 2px;
+  }
+  .control-group input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #f0e68c; cursor: pointer;
+  }
+
+  /* Stats */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+  .stat-card { background: #16213e; border: 1px solid #2a2a4a; border-radius: 8px; padding: 12px; text-align: center; }
+  .stat-value { font-size: 22px; font-weight: 700; margin-bottom: 2px; }
+  .stat-label { font-size: 10px; color: #888; }
+
+  /* Problem list */
+  .problem-list { background: #16213e; border: 1px solid #2a2a4a; border-radius: 10px; padding: 14px; margin-bottom: 16px; }
+  .problem-title { font-size: 13px; font-weight: 500; color: #f0e68c; margin-bottom: 10px; }
+  .problem-item {
+    display: flex; align-items: center; gap: 10px; padding: 8px 0;
+    border-bottom: 1px solid #1a1a2e; font-size: 12px; flex-wrap: wrap;
+  }
+  .problem-item:last-child { border-bottom: none; }
+  .problem-swatch { width: 32px; height: 24px; border-radius: 4px; border: 1px solid #333; flex-shrink: 0; }
+  .problem-arrow { color: #555; flex-shrink: 0; }
+  .problem-delta { font-family: 'Courier New', monospace; font-size: 11px; flex-shrink: 0; min-width: 60px; text-align: right; }
+  .delta-high { color: #ff6b6b; }
+  .delta-mid { color: #ffa94d; }
+  .delta-low { color: #69db7c; }
+  .problem-pct { font-size: 10px; color: #888; flex-shrink: 0; min-width: 40px; text-align: right; }
+  .problem-suggest {
+    display: flex; align-items: center; gap: 6px; margin-left: auto;
+    background: #0f3d0f; border: 1px solid #1a5c1a; border-radius: 4px; padding: 3px 8px;
+    font-size: 10px; color: #69db7c; cursor: pointer; transition: background 0.2s;
+  }
+  .problem-suggest:hover { background: #0f5f0f; }
+  .problem-suggest-swatch { width: 20px; height: 16px; border-radius: 3px; border: 1px solid #2a7a2a; flex-shrink: 0; }
+
+  /* Legend */
+  .heatmap-legend { display: flex; align-items: center; gap: 4px; font-size: 10px; color: #888; margin-bottom: 12px; }
+  .legend-bar { width: 120px; height: 10px; border-radius: 3px; background: linear-gradient(to right, rgba(0,255,0,0.5), rgba(255,255,0,0.5), rgba(255,0,0,0.7)); }
+
+  /* ===== TAB 2: Layer Editor ===== */
+  .layer-container { display: grid; grid-template-columns: 340px 1fr; gap: 20px; }
+  .layers-panel { display: flex; flex-direction: column; gap: 8px; }
+  .layer-card {
+    background: #16213e; border: 1px solid #2a2a4a; border-radius: 8px;
+    padding: 12px 14px; cursor: pointer; transition: border-color 0.2s;
+  }
+  .layer-card.active { border-color: #f0e68c; }
+  .layer-card:hover { border-color: #555; }
+  .layer-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .layer-swatch { width: 28px; height: 28px; border-radius: 6px; border: 2px solid rgba(255,255,255,0.15); flex-shrink: 0; }
+  .layer-name { font-size: 13px; font-weight: 500; }
+  .layer-name-sub { font-size: 10px; color: #888; }
+  .layer-color-info { font-size: 10px; color: #999; font-family: 'Courier New', monospace; }
+  .layer-suggest-btn {
+    font-size: 9px; color: #69db7c; background: #0f3d0f; border: 1px solid #1a5c1a;
+    border-radius: 3px; padding: 2px 6px; cursor: pointer; margin-left: 8px;
+  }
+
+  .preview-panel { display: flex; flex-direction: column; gap: 14px; }
+  .preview-box {
+    background: #0f0f23; border: 1px solid #2a2a4a; border-radius: 12px; padding: 16px; display: flex; gap: 16px;
+  }
+  .preview-canvas-layers {
+    width: 180px; height: 270px; border-radius: 8px; overflow: hidden; flex-shrink: 0;
+    display: grid; grid-template-rows: repeat(6, 1fr); border: 1px solid #333;
+  }
+  .preview-strip { width: 100%; transition: background-color 0.3s; }
+  .compare-label { font-size: 11px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+  .compare-row { display: flex; gap: 12px; margin-bottom: 10px; }
+  .compare-block { flex: 1; text-align: center; }
+  .compare-swatch { width: 100%; height: 50px; border-radius: 6px; border: 1px solid #333; margin-bottom: 4px; }
+  .compare-text { font-size: 10px; color: #aaa; font-family: 'Courier New', monospace; }
+  .warning-badge { display: inline-block; background: #dc3545; color: #fff; font-size: 9px; padding: 2px 6px; border-radius: 3px; }
+  .safe-badge { display: inline-block; background: #28a745; color: #fff; font-size: 9px; padding: 2px 6px; border-radius: 3px; }
+
+  .editor-box { background: #16213e; border: 1px solid #2a2a4a; border-radius: 10px; padding: 14px; }
+  .editor-title { font-size: 13px; font-weight: 500; color: #f0e68c; margin-bottom: 10px; }
+  .slider-group { margin-bottom: 8px; }
+  .slider-label { display: flex; justify-content: space-between; font-size: 11px; color: #aaa; margin-bottom: 3px; }
+  .slider-group input[type="range"] {
+    width: 100%; height: 5px; -webkit-appearance: none; appearance: none;
+    background: #2a2a4a; border-radius: 3px; outline: none;
+  }
+  .slider-group input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%; background: #f0e68c; cursor: pointer;
+  }
+  .color-pick-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  input[type="color"] { width: 32px; height: 24px; border: 1px solid #555; border-radius: 4px; cursor: pointer; background: none; padding: 0; }
+  .hex-input {
+    width: 72px; background: #0f0f23; border: 1px solid #333; border-radius: 4px;
+    color: #e0e0e0; font-size: 11px; font-family: 'Courier New', monospace; padding: 4px 6px; text-align: center;
+  }
+  .cmyk-display { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
+  .cmyk-item { text-align: center; background: #0f0f23; border-radius: 6px; padding: 6px 4px; }
+  .cmyk-letter { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+  .cmyk-value { font-size: 11px; font-family: 'Courier New', monospace; color: #ccc; }
+  .section-divider { height: 1px; background: #2a2a4a; margin: 10px 0; }
+
+  .suggest-box {
+    background: #0f2f0f; border: 1px solid #1a5c1a; border-radius: 8px; padding: 10px; margin-top: 10px;
+  }
+  .suggest-title { font-size: 11px; color: #69db7c; margin-bottom: 8px; font-weight: 500; }
+  .suggest-colors { display: flex; gap: 8px; flex-wrap: wrap; }
+  .suggest-chip {
+    display: flex; align-items: center; gap: 6px; background: #16213e; border: 1px solid #2a2a4a;
+    border-radius: 6px; padding: 4px 8px; cursor: pointer; transition: border-color 0.2s;
+  }
+  .suggest-chip:hover { border-color: #69db7c; }
+  .suggest-chip-swatch { width: 20px; height: 16px; border-radius: 3px; border: 1px solid #333; }
+  .suggest-chip-text { font-size: 10px; font-family: 'Courier New', monospace; color: #ccc; }
+
+  .no-image-msg { color: #555; font-size: 13px; text-align: center; padding: 60px 20px; }
+
+  .btn-export {
+    padding: 6px 14px; font-size: 11px; font-family: 'Noto Sans KR', sans-serif;
+    background: #f0e68c; color: #1a1a2e; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;
+  }
+  .btn-export:hover { background: #e6dc82; }
+  .btn-secondary {
+    padding: 6px 14px; font-size: 11px; font-family: 'Noto Sans KR', sans-serif;
+    background: #2a2a4a; color: #e0e0e0; border: 1px solid #3a3a5a; border-radius: 4px; cursor: pointer;
+  }
+  .btn-secondary:hover { background: #3a3a5a; }
+
+  /* Procreate palette section */
+  .palette-section { margin-top: 16px; }
+  .palette-section-title { font-size: 12px; color: #f0e68c; margin-bottom: 8px; font-weight: 500; }
+  .palette-grid { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .palette-color {
+    width: 28px; height: 28px; border-radius: 4px; border: 2px solid transparent;
+    cursor: pointer; transition: border-color 0.2s;
+  }
+  .palette-color:hover { border-color: #f0e68c; }
+  .palette-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* iPad responsive */
+  @media (max-width: 1024px) {
+    .layer-container { grid-template-columns: 1fr; }
+    .image-grid { grid-template-columns: 1fr; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .preview-box { flex-direction: column; align-items: center; }
+    .preview-canvas-layers { width: 100%; height: 120px; grid-template-rows: 1fr; grid-template-columns: repeat(6, 1fr); }
+  }
+  @media (max-width: 600px) {
+    body { padding: 12px; }
+    h1 { font-size: 16px; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .control-group input[type="range"] { width: 80px; }
+  }
+
+  /* Toast notification */
+  .toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+    background: #28a745; color: #fff; padding: 10px 20px; border-radius: 8px;
+    font-size: 12px; z-index: 1000; opacity: 0; transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<h1>프라스타 패널 채색 시뮬레이션 v2</h1>
+<p class="subtitle">CIEDE2000 기반 이미지 분석 + 레이어별 색상 시뮬레이터 + Procreate 팔레트 연동</p>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab(0)">이미지 분석</div>
+  <div class="tab" onclick="switchTab(1)">레이어 에디터</div>
+  <div class="tab" onclick="switchTab(2)">팔레트</div>
+</div>
+
+<!-- TAB 0: Image Analysis -->
+<div class="tab-content active" id="tab0">
+  <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+    <div class="upload-hint">이미지를 <em>클릭</em>하거나 <em>드래그</em>하여 업로드<br>PNG / JPG 이미지 (Procreate 내보내기)</div>
+  </div>
+  <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp" onchange="handleFile(this.files[0])">
+
+  <div id="analysisResult" style="display:none">
+    <div class="controls-bar">
+      <div class="control-group">
+        <span>히트맵 강도</span>
+        <input type="range" id="heatmapOpacity" min="0" max="100" value="50" oninput="updateHeatmap()">
+        <span id="opacityVal">50%</span>
+      </div>
+      <div class="control-group">
+        <span>경고 임계값 ΔE00</span>
+        <input type="range" id="threshold" min="2" max="30" value="6" oninput="updateHeatmap()">
+        <span id="threshVal">6</span>
+      </div>
+      <button class="btn-export" onclick="exportCmyk()">CMYK 변환 이미지 저장</button>
+    </div>
+    <div class="heatmap-legend">
+      <span>색차 작음 (ΔE00≈0)</span>
+      <div class="legend-bar"></div>
+      <span>색차 큼 (ΔE00≥15)</span>
+    </div>
+    <div class="image-grid">
+      <div class="image-panel">
+        <div class="image-panel-header"><span>원본 (sRGB)</span></div>
+        <canvas id="canvasOriginal"></canvas>
+      </div>
+      <div class="image-panel">
+        <div class="image-panel-header"><span>CMYK 변환 예상</span></div>
+        <canvas id="canvasCmyk"></canvas>
+      </div>
+      <div class="image-panel">
+        <div class="image-panel-header">
+          <span>색차 히트맵 (ΔE00)</span>
+          <span style="font-size:10px;color:#888">안전 → 위험</span>
+        </div>
+        <canvas id="canvasHeatmap"></canvas>
+      </div>
+      <div class="image-panel">
+        <div class="image-panel-header"><span>위험 영역 하이라이트</span></div>
+        <canvas id="canvasOverlay"></canvas>
+      </div>
+    </div>
+    <div class="stats-row" id="statsRow"></div>
+    <div class="problem-list" id="problemList"></div>
+  </div>
+</div>
+
+<!-- TAB 1: Layer Editor -->
+<div class="tab-content" id="tab1">
+  <div class="layer-container">
+    <div class="layers-panel" id="layerList"></div>
+    <div class="preview-panel">
+      <div class="preview-box">
+        <div class="preview-canvas-layers" id="previewCanvasLayers"></div>
+        <div id="cmykCompare" style="flex:1"></div>
+      </div>
+      <div class="editor-box" id="editorBox">
+        <div class="editor-title">레이어를 선택하세요</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Palette -->
+<div class="tab-content" id="tab2">
+  <div class="palette-section">
+    <div class="palette-section-title">Procreate 팔레트 관리</div>
+    <p style="font-size:11px;color:#888;margin-bottom:12px;">
+      Procreate .swatches 파일을 가져오거나, 현재 레이어 색상을 .swatches로 내보낼 수 있습니다.
+    </p>
+    <div class="palette-buttons">
+      <button class="btn-secondary" onclick="document.getElementById('paletteInput').click()">
+        .swatches 가져오기
+      </button>
+      <button class="btn-export" onclick="exportSwatches()">
+        .swatches 내보내기
+      </button>
+    </div>
+    <input type="file" id="paletteInput" accept=".swatches" style="display:none" onchange="importSwatches(this.files[0])">
+
+    <div id="importedPalette" style="margin-top:16px;display:none">
+      <div class="palette-section-title">가져온 팔레트</div>
+      <div class="palette-grid" id="paletteGrid"></div>
+      <p style="font-size:10px;color:#888;">색상을 클릭하면 현재 선택된 레이어에 적용됩니다.</p>
+    </div>
+
+    <div style="margin-top:20px;">
+      <div class="palette-section-title">현재 레이어 색상</div>
+      <div class="palette-grid" id="currentPaletteGrid"></div>
+      <div id="paletteSafetyCheck" style="margin-top:10px;"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== CIEDE2000 Color Difference Implementation =====
+
+// sRGB -> Linear RGB
+function srgbToLinear(c) {
+  c = c / 255;
+  return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+}
+
+// Linear RGB -> XYZ (D65)
+function rgbToXyz(r, g, b) {
+  const rl = srgbToLinear(r), gl = srgbToLinear(g), bl = srgbToLinear(b);
+  return {
+    x: rl * 0.4124564 + gl * 0.3575761 + bl * 0.1804375,
+    y: rl * 0.2126729 + gl * 0.7151522 + bl * 0.0721750,
+    z: rl * 0.0193339 + gl * 0.1191920 + bl * 0.9503041
+  };
+}
+
+// XYZ -> CIELAB
+function xyzToLab(x, y, z) {
+  // D65 white point
+  const xn = 0.95047, yn = 1.00000, zn = 1.08883;
+  function f(t) { return t > 0.008856 ? Math.cbrt(t) : (903.3 * t + 16) / 116; }
+  const fx = f(x / xn), fy = f(y / yn), fz = f(z / zn);
+  return {
+    L: 116 * fy - 16,
+    a: 500 * (fx - fy),
+    b: 200 * (fy - fz)
+  };
+}
+
+// RGB -> Lab
+function rgbToLab(r, g, b) {
+  const xyz = rgbToXyz(r, g, b);
+  return xyzToLab(xyz.x, xyz.y, xyz.z);
+}
+
+// CIEDE2000
+function deltaE00(lab1, lab2) {
+  const L1 = lab1.L, a1 = lab1.a, b1 = lab1.b;
+  const L2 = lab2.L, a2 = lab2.a, b2 = lab2.b;
+
+  const kL = 1, kC = 1, kH = 1;
+
+  const C1 = Math.sqrt(a1 * a1 + b1 * b1);
+  const C2 = Math.sqrt(a2 * a2 + b2 * b2);
+  const Cab = (C1 + C2) / 2;
+
+  const Cab7 = Math.pow(Cab, 7);
+  const G = 0.5 * (1 - Math.sqrt(Cab7 / (Cab7 + Math.pow(25, 7))));
+
+  const a1p = a1 * (1 + G);
+  const a2p = a2 * (1 + G);
+
+  const C1p = Math.sqrt(a1p * a1p + b1 * b1);
+  const C2p = Math.sqrt(a2p * a2p + b2 * b2);
+
+  let h1p = Math.atan2(b1, a1p) * 180 / Math.PI;
+  if (h1p < 0) h1p += 360;
+  let h2p = Math.atan2(b2, a2p) * 180 / Math.PI;
+  if (h2p < 0) h2p += 360;
+
+  const dLp = L2 - L1;
+  const dCp = C2p - C1p;
+
+  let dhp;
+  if (C1p * C2p === 0) {
+    dhp = 0;
+  } else if (Math.abs(h2p - h1p) <= 180) {
+    dhp = h2p - h1p;
+  } else if (h2p - h1p > 180) {
+    dhp = h2p - h1p - 360;
+  } else {
+    dhp = h2p - h1p + 360;
+  }
+  const dHp = 2 * Math.sqrt(C1p * C2p) * Math.sin(dhp * Math.PI / 360);
+
+  const Lp = (L1 + L2) / 2;
+  const Cp = (C1p + C2p) / 2;
+
+  let hp;
+  if (C1p * C2p === 0) {
+    hp = h1p + h2p;
+  } else if (Math.abs(h1p - h2p) <= 180) {
+    hp = (h1p + h2p) / 2;
+  } else if (h1p + h2p < 360) {
+    hp = (h1p + h2p + 360) / 2;
+  } else {
+    hp = (h1p + h2p - 360) / 2;
+  }
+
+  const T = 1
+    - 0.17 * Math.cos((hp - 30) * Math.PI / 180)
+    + 0.24 * Math.cos((2 * hp) * Math.PI / 180)
+    + 0.32 * Math.cos((3 * hp + 6) * Math.PI / 180)
+    - 0.20 * Math.cos((4 * hp - 63) * Math.PI / 180);
+
+  const Lp50sq = (Lp - 50) * (Lp - 50);
+  const SL = 1 + 0.015 * Lp50sq / Math.sqrt(20 + Lp50sq);
+  const SC = 1 + 0.045 * Cp;
+  const SH = 1 + 0.015 * Cp * T;
+
+  const Cp7 = Math.pow(Cp, 7);
+  const RC = 2 * Math.sqrt(Cp7 / (Cp7 + Math.pow(25, 7)));
+  const dtheta = 30 * Math.exp(-Math.pow((hp - 275) / 25, 2));
+  const RT = -Math.sin(2 * dtheta * Math.PI / 180) * RC;
+
+  const dL = dLp / (kL * SL);
+  const dC = dCp / (kC * SC);
+  const dH = dHp / (kH * SH);
+
+  return Math.sqrt(dL * dL + dC * dC + dH * dH + RT * dC * dH);
+}
+
+// ===== Color conversion utilities =====
+function rgbToCmyk(r, g, b) {
+  const r1 = r / 255, g1 = g / 255, b1 = b / 255;
+  const k = 1 - Math.max(r1, g1, b1);
+  if (k === 1) return { c: 0, m: 0, y: 0, k: 100 };
+  return {
+    c: Math.round(((1 - r1 - k) / (1 - k)) * 100),
+    m: Math.round(((1 - g1 - k) / (1 - k)) * 100),
+    y: Math.round(((1 - b1 - k) / (1 - k)) * 100),
+    k: Math.round(k * 100)
+  };
+}
+
+function cmykToRgb(c, m, y, k) {
+  const c1 = c / 100, m1 = m / 100, y1 = y / 100, k1 = k / 100;
+  return {
+    r: Math.round(255 * (1 - c1) * (1 - k1)),
+    g: Math.round(255 * (1 - m1) * (1 - k1)),
+    b: Math.round(255 * (1 - y1) * (1 - k1))
+  };
+}
+
+function hexToRgb(h) {
+  h = h.replace('#', '');
+  return { r: parseInt(h.substring(0, 2), 16), g: parseInt(h.substring(2, 4), 16), b: parseInt(h.substring(4, 6), 16) };
+}
+function rgbToHex(r, g, b) {
+  return '#' + [r, g, b].map(x => Math.max(0, Math.min(255, Math.round(x))).toString(16).padStart(2, '0')).join('').toUpperCase();
+}
+
+// ===== CMYK-safe color suggestion =====
+// Find the nearest color that survives CMYK roundtrip with low deltaE00
+function suggestSafeColor(r, g, b) {
+  const labOrig = rgbToLab(r, g, b);
+  const cmyk = rgbToCmyk(r, g, b);
+  const back = cmykToRgb(cmyk.c, cmyk.m, cmyk.y, cmyk.k);
+  const labBack = rgbToLab(back.r, back.g, back.b);
+  const currentDelta = deltaE00(labOrig, labBack);
+
+  if (currentDelta < 3) return null; // Already safe
+
+  // Strategy: search nearby colors that are CMYK-stable
+  let bestColor = null;
+  let bestScore = Infinity; // score = weighted(perceptual distance from original + roundtrip delta)
+  const step = 4;
+  const range = 40;
+
+  for (let dr = -range; dr <= range; dr += step) {
+    for (let dg = -range; dg <= range; dg += step) {
+      for (let db = -range; db <= range; db += step) {
+        const nr = Math.max(0, Math.min(255, r + dr));
+        const ng = Math.max(0, Math.min(255, g + dg));
+        const nb = Math.max(0, Math.min(255, b + db));
+
+        const ncmyk = rgbToCmyk(nr, ng, nb);
+        const nback = cmykToRgb(ncmyk.c, ncmyk.m, ncmyk.y, ncmyk.k);
+        const labNew = rgbToLab(nr, ng, nb);
+        const labNewBack = rgbToLab(nback.r, nback.g, nback.b);
+
+        const roundtripDelta = deltaE00(labNew, labNewBack);
+        if (roundtripDelta > 2) continue; // Must be CMYK-stable
+
+        const perceptualDist = deltaE00(labOrig, labNew);
+        const score = perceptualDist;
+
+        if (score < bestScore) {
+          bestScore = score;
+          bestColor = { r: nr, g: ng, b: nb, delta: roundtripDelta, dist: perceptualDist };
+        }
+      }
+    }
+  }
+  return bestColor;
+}
+
+// Faster version for per-pixel: just use the CMYK roundtrip color itself as suggestion
+function quickSuggest(r, g, b) {
+  const cmyk = rgbToCmyk(r, g, b);
+  const back = cmykToRgb(cmyk.c, cmyk.m, cmyk.y, cmyk.k);
+  return back;
+}
+
+// ===== Tab switching =====
+function switchTab(idx) {
+  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+  document.querySelectorAll('.tab-content').forEach((t, i) => t.classList.toggle('active', i === idx));
+  if (idx === 2) renderPaletteTab();
+}
+
+// ===== Toast =====
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ===== Image Analysis (Tab 0) =====
+let imgData = null;
+let imgWidth = 0, imgHeight = 0;
+let cmykPixels = null;
+let deltaPixels = null;
+
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.style.borderColor = '#f0e68c'; });
+zone.addEventListener('dragleave', () => { zone.style.borderColor = '#2a2a4a'; });
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.style.borderColor = '#2a2a4a';
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+
+function handleFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => processImage(img);
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function processImage(img) {
+  const maxW = 600;
+  const scale = img.width > maxW ? maxW / img.width : 1;
+  imgWidth = Math.round(img.width * scale);
+  imgHeight = Math.round(img.height * scale);
+
+  // Draw original
+  const cOrig = document.getElementById('canvasOriginal');
+  cOrig.width = imgWidth; cOrig.height = imgHeight;
+  const ctxOrig = cOrig.getContext('2d');
+  ctxOrig.drawImage(img, 0, 0, imgWidth, imgHeight);
+  imgData = ctxOrig.getImageData(0, 0, imgWidth, imgHeight);
+
+  const px = imgData.data;
+  const len = px.length;
+  cmykPixels = new Uint8ClampedArray(len);
+  deltaPixels = new Float32Array(len / 4);
+
+  let totalDelta = 0;
+  let maxDelta = 0;
+  const dangerColors = {};
+
+  for (let i = 0; i < len; i += 4) {
+    const r = px[i], g = px[i + 1], b = px[i + 2], a = px[i + 3];
+    const cmyk = rgbToCmyk(r, g, b);
+    const back = cmykToRgb(cmyk.c, cmyk.m, cmyk.y, cmyk.k);
+    cmykPixels[i] = back.r;
+    cmykPixels[i + 1] = back.g;
+    cmykPixels[i + 2] = back.b;
+    cmykPixels[i + 3] = a;
+
+    // CIEDE2000 delta
+    const lab1 = rgbToLab(r, g, b);
+    const lab2 = rgbToLab(back.r, back.g, back.b);
+    const d = deltaE00(lab1, lab2);
+    deltaPixels[i / 4] = d;
+    totalDelta += d;
+    if (d > maxDelta) maxDelta = d;
+
+    // Cluster danger colors (quantize to 32-step)
+    if (d > 3) {
+      const qr = Math.round(r / 32) * 32;
+      const qg = Math.round(g / 32) * 32;
+      const qb = Math.round(b / 32) * 32;
+      const key = `${qr},${qg},${qb}`;
+      if (!dangerColors[key]) dangerColors[key] = { r: qr, g: qg, b: qb, count: 0, totalDelta: 0 };
+      dangerColors[key].count++;
+      dangerColors[key].totalDelta += d;
+    }
+  }
+
+  const totalPx = len / 4;
+  const avgDelta = totalDelta / totalPx;
+
+  // CMYK canvas
+  const cCmyk = document.getElementById('canvasCmyk');
+  cCmyk.width = imgWidth; cCmyk.height = imgHeight;
+  cCmyk.getContext('2d').putImageData(new ImageData(cmykPixels, imgWidth, imgHeight), 0, 0);
+
+  // Stats (CIEDE2000 thresholds: <3 safe, 3-6 noticeable, >6 problematic)
+  let dangerCount = 0, warnCount = 0, safeCount = 0;
+  for (let i = 0; i < totalPx; i++) {
+    if (deltaPixels[i] > 6) dangerCount++;
+    else if (deltaPixels[i] > 3) warnCount++;
+    else safeCount++;
+  }
+
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-value" style="color:#69db7c">${(safeCount / totalPx * 100).toFixed(1)}%</div>
+      <div class="stat-label">안전 (ΔE00≤3)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color:#ffa94d">${(warnCount / totalPx * 100).toFixed(1)}%</div>
+      <div class="stat-label">주의 (3<ΔE00≤6)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color:#ff6b6b">${(dangerCount / totalPx * 100).toFixed(1)}%</div>
+      <div class="stat-label">위험 (ΔE00>6)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color:#e0e0e0">${avgDelta.toFixed(2)}</div>
+      <div class="stat-label">평균 ΔE00</div>
+    </div>
+  `;
+
+  // Problem color list with suggestions
+  const sorted = Object.values(dangerColors).sort((a, b) => b.count - a.count).slice(0, 8);
+  const plEl = document.getElementById('problemList');
+  if (sorted.length === 0) {
+    plEl.innerHTML = `<div class="problem-title">모든 색상이 CMYK 안전 범위 내입니다</div>`;
+  } else {
+    plEl.innerHTML = `
+      <div class="problem-title">색차가 큰 주요 색상 영역 (클릭하여 추천 색 적용)</div>
+      ${sorted.map(c => {
+        const cmyk = rgbToCmyk(c.r, c.g, c.b);
+        const back = cmykToRgb(cmyk.c, cmyk.m, cmyk.y, cmyk.k);
+        const avgD = c.totalDelta / c.count;
+        const pct = (c.count / (len / 4) * 100).toFixed(1);
+        const hexOrig = rgbToHex(c.r, c.g, c.b);
+        const hexCmyk = rgbToHex(back.r, back.g, back.b);
+        const cls = avgD > 6 ? 'delta-high' : avgD > 3 ? 'delta-mid' : 'delta-low';
+
+        // Generate suggestion
+        const suggestion = suggestSafeColor(c.r, c.g, c.b);
+        const suggestHtml = suggestion ?
+          `<div class="problem-suggest" onclick="copyColor('${rgbToHex(suggestion.r, suggestion.g, suggestion.b)}')" title="클릭하여 복사">
+            <div class="problem-suggest-swatch" style="background:${rgbToHex(suggestion.r, suggestion.g, suggestion.b)}"></div>
+            추천: ${rgbToHex(suggestion.r, suggestion.g, suggestion.b)}
+          </div>` :
+          `<div style="font-size:10px;color:#69db7c;margin-left:auto;">CMYK 안전</div>`;
+
+        return `<div class="problem-item">
+          <div class="problem-swatch" style="background:${hexOrig}" title="원본"></div>
+          <span class="problem-arrow">→</span>
+          <div class="problem-swatch" style="background:${hexCmyk}" title="CMYK 변환"></div>
+          <span class="problem-delta ${cls}">ΔE00 ${avgD.toFixed(1)}</span>
+          <span class="problem-pct">${pct}%</span>
+          ${suggestHtml}
+        </div>`;
+      }).join('')}
+    `;
+  }
+
+  updateHeatmap();
+  document.getElementById('analysisResult').style.display = 'block';
+  document.getElementById('uploadZone').style.display = 'none';
+}
+
+function copyColor(hex) {
+  navigator.clipboard.writeText(hex).then(() => showToast(`${hex} 복사됨 — Procreate에서 붙여넣기하세요`));
+}
+
+function updateHeatmap() {
+  if (!imgData) return;
+  const opacity = parseInt(document.getElementById('heatmapOpacity').value) / 100;
+  const thresh = parseInt(document.getElementById('threshold').value);
+  document.getElementById('opacityVal').textContent = Math.round(opacity * 100) + '%';
+  document.getElementById('threshVal').textContent = thresh;
+
+  const totalPx = imgWidth * imgHeight;
+  const px = imgData.data;
+
+  const cHeat = document.getElementById('canvasHeatmap');
+  cHeat.width = imgWidth; cHeat.height = imgHeight;
+  const ctxHeat = cHeat.getContext('2d');
+  const heatData = ctxHeat.createImageData(imgWidth, imgHeight);
+
+  const cOver = document.getElementById('canvasOverlay');
+  cOver.width = imgWidth; cOver.height = imgHeight;
+  const ctxOver = cOver.getContext('2d');
+  const overData = ctxOver.createImageData(imgWidth, imgHeight);
+
+  for (let i = 0; i < totalPx; i++) {
+    const d = deltaPixels[i];
+    const norm = Math.min(d / 15, 1); // ΔE00 scale: 0-15 mapped to 0-1
+
+    let hr, hg, hb;
+    if (norm < 0.5) {
+      hr = Math.round(norm * 2 * 255);
+      hg = 255;
+      hb = 0;
+    } else {
+      hr = 255;
+      hg = Math.round((1 - (norm - 0.5) * 2) * 255);
+      hb = 0;
+    }
+
+    const pi = i * 4;
+    heatData.data[pi] = hr;
+    heatData.data[pi + 1] = hg;
+    heatData.data[pi + 2] = hb;
+    heatData.data[pi + 3] = 200;
+
+    if (d > thresh) {
+      const blend = Math.min((d - thresh) / 10, 1) * opacity;
+      overData.data[pi] = Math.round(px[pi] * (1 - blend) + 255 * blend);
+      overData.data[pi + 1] = Math.round(px[pi + 1] * (1 - blend) + 50 * blend);
+      overData.data[pi + 2] = Math.round(px[pi + 2] * (1 - blend) + 50 * blend);
+      overData.data[pi + 3] = px[pi + 3];
+    } else {
+      overData.data[pi] = px[pi];
+      overData.data[pi + 1] = px[pi + 1];
+      overData.data[pi + 2] = px[pi + 2];
+      overData.data[pi + 3] = px[pi + 3];
+    }
+  }
+  ctxHeat.putImageData(heatData, 0, 0);
+  ctxOver.putImageData(overData, 0, 0);
+}
+
+function exportCmyk() {
+  if (!cmykPixels) return;
+  const c = document.createElement('canvas');
+  c.width = imgWidth; c.height = imgHeight;
+  c.getContext('2d').putImageData(new ImageData(cmykPixels, imgWidth, imgHeight), 0, 0);
+  const a = document.createElement('a');
+  a.download = 'cmyk_preview.png';
+  a.href = c.toDataURL('image/png');
+  a.click();
+}
+
+// ===== Layer Editor (Tab 1) =====
+const layers = [
+  { id: 'skin', name: '피부', sub: 'スキン', color: '#F5D0A9' },
+  { id: 'hair', name: '머리카락', sub: 'ヘアー', color: '#FFD700' },
+  { id: 'costume', name: '의상 (하늘색)', sub: 'コスチューム', color: '#87CEEB' },
+  { id: 'costume2', name: '의상 서브', sub: 'サブカラー', color: '#FFFFFF' },
+  { id: 'flower', name: '해바라기', sub: 'ひまわり', color: '#FFD700' },
+  { id: 'green', name: '그린 소재', sub: 'グリーン', color: '#90EE90' },
+];
+let activeLayer = 0;
+
+function renderLayers() {
+  const listEl = document.getElementById('layerList');
+  listEl.innerHTML = layers.map((l, i) => {
+    const rgb = hexToRgb(l.color);
+    const cmyk = rgbToCmyk(rgb.r, rgb.g, rgb.b);
+    const back = cmykToRgb(cmyk.c, cmyk.m, cmyk.y, cmyk.k);
+    const lab1 = rgbToLab(rgb.r, rgb.g, rgb.b);
+    const lab2 = rgbToLab(back.r, back.g, back.b);
+    const de = deltaE00(lab1, lab2);
+    const deClass = de > 6 ? 'delta-high' : de > 3 ? 'delta-mid' : 'delta-low';
+
+    return `<div class="layer-card ${i === activeLayer ? 'active' : ''}" onclick="selLayer(${i})">
+      <div class="layer-header">
+        <div class="layer-swatch" style="background:${l.color}"></div>
+        <div>
+          <div class="layer-name">${l.name}</div>
+          <div class="layer-name-sub">${l.sub}</div>
+        </div>
+      </div>
+      <div class="layer-color-info">
+        ${l.color} → C${cmyk.c} M${cmyk.m} Y${cmyk.y} K${cmyk.k}
+        <span class="${deClass}" style="margin-left:6px;">ΔE00 ${de.toFixed(1)}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('previewCanvasLayers').innerHTML = layers.map(l =>
+    `<div class="preview-strip" style="background:${l.color}"></div>`
+  ).join('');
+
+  const l = layers[activeLayer];
+  const rgb = hexToRgb(l.color);
+  const cmyk = rgbToCmyk(rgb.r, rgb.g, rgb.b);
+  const pr = cmykToRgb(cmyk.c, cmyk.m, cmyk.y, cmyk.k);
+  const ph = rgbToHex(pr.r, pr.g, pr.b);
+  const lab1 = rgbToLab(rgb.r, rgb.g, rgb.b);
+  const lab2 = rgbToLab(pr.r, pr.g, pr.b);
+  const d = deltaE00(lab1, lab2);
+  const bad = d > 6, warn = d > 3 && d <= 6;
+
+  // Generate suggestions for this layer
+  const suggestion = suggestSafeColor(rgb.r, rgb.g, rgb.b);
+
+  document.getElementById('cmykCompare').innerHTML = `
+    <div class="compare-label">${l.name} 변환 비교</div>
+    <div class="compare-row">
+      <div class="compare-block"><div class="compare-swatch" style="background:${l.color}"></div><div class="compare-text">RGB ${l.color}</div></div>
+      <div class="compare-block"><div class="compare-swatch" style="background:${ph}"></div><div class="compare-text">CMYK ${ph}</div></div>
+    </div>
+    <div style="margin-bottom:8px;">
+      ${bad ? `<div class="warning-badge">ΔE00 ${d.toFixed(1)} — 인쇄 시 색차 큼</div>` :
+        warn ? `<div class="warning-badge" style="background:#e67700">ΔE00 ${d.toFixed(1)} — 약간의 색차</div>` :
+        `<div class="safe-badge">ΔE00 ${d.toFixed(1)} — CMYK 안전</div>`}
+    </div>
+    ${suggestion ? `
+    <div class="suggest-box">
+      <div class="suggest-title">CMYK 안전 추천 색상</div>
+      <div class="suggest-colors">
+        <div class="suggest-chip" onclick="applyLayerColor('${rgbToHex(suggestion.r, suggestion.g, suggestion.b)}')">
+          <div class="suggest-chip-swatch" style="background:${rgbToHex(suggestion.r, suggestion.g, suggestion.b)}"></div>
+          <span class="suggest-chip-text">${rgbToHex(suggestion.r, suggestion.g, suggestion.b)} (ΔE00 ${suggestion.delta.toFixed(1)})</span>
+        </div>
+        <div class="suggest-chip" onclick="applyLayerColor('${ph}')">
+          <div class="suggest-chip-swatch" style="background:${ph}"></div>
+          <span class="suggest-chip-text">${ph} (CMYK 정확)</span>
+        </div>
+      </div>
+    </div>` : ''}
+  `;
+
+  document.getElementById('editorBox').innerHTML = `
+    <div class="editor-title">${l.name} (${l.sub})</div>
+    <div class="color-pick-row">
+      <input type="color" value="${l.color}" onchange="pickColor(this.value)">
+      <input type="text" class="hex-input" value="${l.color}" onchange="hexChange(this.value)">
+    </div>
+    <div class="slider-group"><div class="slider-label"><span>R</span><span>${rgb.r}</span></div>
+      <input type="range" min="0" max="255" value="${rgb.r}" oninput="slide('r',this.value)"></div>
+    <div class="slider-group"><div class="slider-label"><span>G</span><span>${rgb.g}</span></div>
+      <input type="range" min="0" max="255" value="${rgb.g}" oninput="slide('g',this.value)"></div>
+    <div class="slider-group"><div class="slider-label"><span>B</span><span>${rgb.b}</span></div>
+      <input type="range" min="0" max="255" value="${rgb.b}" oninput="slide('b',this.value)"></div>
+    <div class="section-divider"></div>
+    <div class="cmyk-display">
+      <div class="cmyk-item"><div class="cmyk-letter" style="color:#00bcd4">C</div><div class="cmyk-value">${cmyk.c}%</div></div>
+      <div class="cmyk-item"><div class="cmyk-letter" style="color:#e91e63">M</div><div class="cmyk-value">${cmyk.m}%</div></div>
+      <div class="cmyk-item"><div class="cmyk-letter" style="color:#f0e68c">Y</div><div class="cmyk-value">${cmyk.y}%</div></div>
+      <div class="cmyk-item"><div class="cmyk-letter" style="color:#888">K</div><div class="cmyk-value">${cmyk.k}%</div></div>
+    </div>
+  `;
+}
+
+function selLayer(i) { activeLayer = i; renderLayers(); }
+function pickColor(v) { layers[activeLayer].color = v.toUpperCase(); renderLayers(); }
+function hexChange(v) { if (/^#[0-9A-Fa-f]{6}$/.test(v)) { layers[activeLayer].color = v.toUpperCase(); renderLayers(); } }
+function slide(ch, v) {
+  const rgb = hexToRgb(layers[activeLayer].color);
+  if (ch === 'r') rgb.r = +v; if (ch === 'g') rgb.g = +v; if (ch === 'b') rgb.b = +v;
+  layers[activeLayer].color = rgbToHex(rgb.r, rgb.g, rgb.b);
+  renderLayers();
+}
+function applyLayerColor(hex) {
+  layers[activeLayer].color = hex.toUpperCase();
+  renderLayers();
+  showToast(`${layers[activeLayer].name}에 ${hex} 적용됨`);
+}
+
+// ===== Palette Tab (Tab 2) =====
+let importedColors = [];
+
+function renderPaletteTab() {
+  // Current layer colors
+  const grid = document.getElementById('currentPaletteGrid');
+  grid.innerHTML = layers.map((l, i) => {
+    const rgb = hexToRgb(l.color);
+    const cmyk = rgbToCmyk(rgb.r, rgb.g, rgb.b);
+    const back = cmykToRgb(cmyk.c, cmyk.m, cmyk.y, cmyk.k);
+    const lab1 = rgbToLab(rgb.r, rgb.g, rgb.b);
+    const lab2 = rgbToLab(back.r, back.g, back.b);
+    const de = deltaE00(lab1, lab2);
+    const borderColor = de > 6 ? '#ff6b6b' : de > 3 ? '#ffa94d' : '#2a2a4a';
+    return `<div class="palette-color" style="background:${l.color};border-color:${borderColor}"
+      title="${l.name}: ${l.color} (ΔE00 ${de.toFixed(1)})" onclick="switchTab(1);selLayer(${i})"></div>`;
+  }).join('');
+
+  // Safety check
+  const checks = layers.map(l => {
+    const rgb = hexToRgb(l.color);
+    const cmyk = rgbToCmyk(rgb.r, rgb.g, rgb.b);
+    const back = cmykToRgb(cmyk.c, cmyk.m, cmyk.y, cmyk.k);
+    const lab1 = rgbToLab(rgb.r, rgb.g, rgb.b);
+    const lab2 = rgbToLab(back.r, back.g, back.b);
+    return { name: l.name, de: deltaE00(lab1, lab2) };
+  });
+  const unsafe = checks.filter(c => c.de > 3);
+  document.getElementById('paletteSafetyCheck').innerHTML = unsafe.length === 0
+    ? `<div class="safe-badge">모든 레이어가 CMYK 안전합니다</div>`
+    : `<div style="font-size:11px;color:#ffa94d;">${unsafe.map(u => `${u.name} (ΔE00 ${u.de.toFixed(1)})`).join(', ')} — 색차 주의</div>`;
+}
+
+// Procreate .swatches import (ASE-like binary, but Procreate uses its own format)
+// Procreate .swatches files are actually zip-compressed archives containing a JSON file
+async function importSwatches(file) {
+  if (!file) return;
+  try {
+    // Try reading as a zip (Procreate .swatches format)
+    const arrayBuf = await file.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuf);
+
+    // Check if it's a zip file (PK header)
+    if (bytes[0] === 0x50 && bytes[1] === 0x4B) {
+      // Use JSZip-like minimal approach: find the JSON inside
+      // Procreate stores swatches.json inside the zip
+      const text = new TextDecoder().decode(bytes);
+      // Find JSON array pattern for colors
+      const jsonMatch = text.match(/\[\s*\[\s*[\d.]+/);
+      if (jsonMatch) {
+        // Extract the JSON portion - find the matching brackets
+        const startIdx = text.indexOf(jsonMatch[0]);
+        let depth = 0;
+        let endIdx = startIdx;
+        for (let i = startIdx; i < text.length; i++) {
+          if (text[i] === '[') depth++;
+          else if (text[i] === ']') { depth--; if (depth === 0) { endIdx = i + 1; break; } }
+        }
+        const jsonStr = text.substring(startIdx, endIdx);
+        try {
+          const colorArrays = JSON.parse(jsonStr);
+          importedColors = colorArrays
+            .filter(c => Array.isArray(c) && c.length >= 3)
+            .map(c => ({
+              r: Math.round(c[0] * 255),
+              g: Math.round(c[1] * 255),
+              b: Math.round(c[2] * 255)
+            }));
+          renderImportedPalette();
+          showToast(`${importedColors.length}개 색상 가져옴`);
+          return;
+        } catch (e) { /* fall through */ }
+      }
+    }
+
+    // Fallback: try parsing as JSON directly
+    const text = new TextDecoder().decode(bytes);
+    const parsed = JSON.parse(text);
+    if (Array.isArray(parsed)) {
+      importedColors = parsed.filter(c => Array.isArray(c) && c.length >= 3).map(c => ({
+        r: Math.round((c[0] || 0) * 255),
+        g: Math.round((c[1] || 0) * 255),
+        b: Math.round((c[2] || 0) * 255)
+      }));
+      renderImportedPalette();
+      showToast(`${importedColors.length}개 색상 가져옴`);
+    }
+  } catch (e) {
+    showToast('파일 형식을 읽을 수 없습니다. Procreate에서 내보낸 .swatches 파일을 사용해주세요.');
+  }
+}
+
+function renderImportedPalette() {
+  if (importedColors.length === 0) return;
+  document.getElementById('importedPalette').style.display = 'block';
+  document.getElementById('paletteGrid').innerHTML = importedColors.map((c, i) => {
+    const hex = rgbToHex(c.r, c.g, c.b);
+    const cmyk = rgbToCmyk(c.r, c.g, c.b);
+    const back = cmykToRgb(cmyk.c, cmyk.m, cmyk.y, cmyk.k);
+    const lab1 = rgbToLab(c.r, c.g, c.b);
+    const lab2 = rgbToLab(back.r, back.g, back.b);
+    const de = deltaE00(lab1, lab2);
+    const borderColor = de > 6 ? '#ff6b6b' : de > 3 ? '#ffa94d' : 'transparent';
+    return `<div class="palette-color" style="background:${hex};border-color:${borderColor}"
+      title="${hex} (ΔE00 ${de.toFixed(1)})"
+      onclick="applyImportedColor(${i})"></div>`;
+  }).join('');
+}
+
+function applyImportedColor(idx) {
+  const c = importedColors[idx];
+  if (!c) return;
+  layers[activeLayer].color = rgbToHex(c.r, c.g, c.b);
+  renderLayers();
+  showToast(`${layers[activeLayer].name}에 ${rgbToHex(c.r, c.g, c.b)} 적용됨`);
+}
+
+// Export .swatches (Procreate-compatible: just the JSON color array as a .swatches file)
+function exportSwatches() {
+  const colorArrays = layers.map(l => {
+    const rgb = hexToRgb(l.color);
+    return [rgb.r / 255, rgb.g / 255, rgb.b / 255, 1];
+  });
+  // Pad to 30 colors (Procreate expects rows of colors)
+  while (colorArrays.length < 30) {
+    colorArrays.push([0, 0, 0, 0]); // transparent/empty
+  }
+
+  const json = JSON.stringify(colorArrays);
+  const blob = new Blob([json], { type: 'application/octet-stream' });
+  const a = document.createElement('a');
+  a.download = 'prasta_palette.swatches';
+  a.href = URL.createObjectURL(blob);
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('팔레트 내보내기 완료 — AirDrop으로 iPad에 전송하세요');
+}
+
+renderLayers();
+</script>
+</body>
+</html>
